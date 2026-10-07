@@ -1,0 +1,24 @@
+# Dependencies / virtual environments
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Version control and editor files
+.git/
+.gitignore
+.idea/
+.vscode/
+
+# Secrets and local config
+.env
+.env.*
+
+# Docker and docs
+Dockerfile
+.dockerignore
+docker-compose*.yml
+README.md
