@@ -58,6 +58,51 @@ ReDoc documentation:
 ```text
 http://127.0.0.1:8000/redoc
 ```
+## Running with Docker
+
+You can also run the application inside a Docker container. This method automatically handles all dependencies and environment variables.
+
+### Prerequisites
+
+* Docker Desktop installed and running
+
+### Steps to Run
+
+1. **Build the Docker image**:
+   ```bash
+   docker build -t quizapp-image .
+   ```
+
+2. **Run the container**:
+   ```bash
+   docker run -d --name quizapp-container -p 80:8000 quizapp-image
+   ```
+   *Note: This maps port 80 of your local machine to port 8000 inside the container, where Uvicorn is running.*
+
+3. **Access the application**:
+   * Main App: [http://localhost](http://localhost)
+   * Swagger Documentation: [http://localhost/docs](http://localhost/docs)
+   * ReDoc Documentation: [http://localhost/redoc](http://localhost/redoc)
+
+### Managing the Container
+
+* **View logs**:
+  ```bash
+  docker logs quizapp-container
+  ```
+* **Stop the container**:
+  ```bash
+  docker stop quizapp-container
+  ```
+* **Start the container again**:
+  ```bash
+  docker start quizapp-container
+  ```
+* **Remove the container**:
+  ```bash
+  docker rm -f quizapp-container
+  ```
+
 
 ## Testing
 
