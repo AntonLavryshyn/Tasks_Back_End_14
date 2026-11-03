@@ -1,12 +1,10 @@
-import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
-#URL for async connection( in future pull the settings from the configuration file )
-# First look for the variable in the Docker enviroument, if it's not there, use the local default
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://my_user:my_password@localhost:5432/my_database")
+from app.core.config import settings
+
+# # The URL is now retrieved automatically and securely
+DATABASE_URL = settings.DATABASE_URL_asyncpg
 
 # Create async engine
 async_engine = create_async_engine(

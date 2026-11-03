@@ -58,6 +58,7 @@ ReDoc documentation:
 ```text
 http://127.0.0.1:8000/redoc
 ```
+
 ## Running with Docker Compose
 
 The local development environment is fully containerized using Docker Compose. This method automatically deploys the FastAPI application, PostgreSQL database, and Redis for caching, while also automatically tracking changes in your code.
@@ -129,6 +130,55 @@ Since all components of the system run within an isolated Docker network (`quiz_
   docker compose ps
   ```
 
+---
+
+## 🔄 Database Migrations (Alembic)
+
+Database schema migrations are fully integrated into the Docker infrastructure via an isolated `alembic` utility service. All commands are executed within the containerized backend environment to preserve dependency consistency.
+
+### Connecting via pgAdmin (Host Port Configuration)
+If you have a local installation of PostgreSQL on your host Windows machine running on the standard port `5432`, Docker Compose is configured to route the container's internal PostgreSQL database to port **`5433`** on your host to avoid binding conflicts.
+
+To inspect the database inside pgAdmin, register a new server with the following credentials:
+* **Host**: `localhost`
+* **Port**: `5433`
+* **Maintenance database**: `my_database`
+* **Username**: `my_user`
+* **Password**: `my_password`
+
+### Alembic Workflow Commands
+
+> **Note**: Do not type `alembic` twice in your commands. The service container automatically routes CLI inputs straight to the Alembic engine.
+
+* **Generate a new automatic migration script**:
+  Run this command whenever you introduce or update SQLAlchemy/SQLModel ORM models inside `app/db/models`:
+  ```bash
+  docker compose run --rm alembic revision --autogenerate -m "describe_your_changes"
+  ```
+  *The resulting script is written seamlessly to your host machine's `./migrations/versions` directory via bind mounts.*
+
+* **Apply all pending migrations to the database**:
+  ```bash
+  docker compose run --rm alembic upgrade head
+  ```
+
+* **Rollback the last applied migration step**:
+  ```bash
+  docker compose run --rm alembic downgrade -1
+  ```
+
+* **View migration historical timeline**:
+  ```bash
+  docker compose run --rm alembic history
+  ```
+
+* **View current revision state of the live database**:
+  ```bash
+  docker compose run --rm alembic current
+  ```
+
+---
+
 ## Testing
 
 Run all tests:
@@ -137,10 +187,9 @@ Run all tests:
 pytest
 ```
 
-## Project Structure
+---
 
-```text
- ## Project Structure
+## Project Structure
 
 The project follows a modular and scalable architecture for modern FastAPI applications:
 
@@ -155,6 +204,9 @@ QuizApp/
 │   ├── utils/            # Helper functions and reusable utilities
 │   ├── __init__.py       # Initializes 'app' as a Python package
 │   └── main.py           # Application entry point (FastAPI app initialization)
+├── migrations/           # Database migration environment (Alembic)
+│   ├── versions/         # Executable migration scripts
+│   └── env.py            # Alembic runtime configuration script
 ├── tests/                # Test suite
 │   ├── __init__.py       # Initializes 'tests' as a Python package
 │   └── test_main.py      # Integration and unit tests for endpoints
@@ -173,11 +225,13 @@ QuizApp/
 * **`app/schemas/`**: Stores Pydantic models used for Request and Response data validation. They ensure data type safety entering and leaving the API.
 * **`app/services/`**: Houses the actual business logic. Routes should handle requests/responses and delegate all heavy lifting, calculations, and complex DB queries to services.
 * **`app/utils/`**: Reusable independent helper scripts (e.g., date formatters, custom loggers, email senders).
+* **`migrations/`**: Managed by Alembic. Contains auto-generated migration timeline scripts tracking relational database state changes.
 * **`tests/`**: Contains automated tests powered by `pytest` and `Httpx` to verify the application's correctness.
 
 ### Note on `__init__.py` files
 Every module folder contains an `__init__.py` file. This explicit initialization guarantees seamless absolute imports across the project (e.g., `from app.core.config import settings`) and ensures that `pytest` discovers modules correctly during test execution.
 
+---
 
 ## Git Workflow
 
@@ -185,6 +239,3 @@ The project uses the following branches:
 
 * `main` — stable production branch
 * `develop` — development/integration branch
-* `BE-1-init-application` — branch for the initial FastAPI application
-
-Each task should be implemented in a separate task-specific branch and merged into `develop` through a pull request.

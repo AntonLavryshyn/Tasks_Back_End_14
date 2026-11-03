@@ -7,7 +7,7 @@ REDIS_URL = os.getenv(
 )
 
 # Creating global Redis client
-redis_client = aioredis.from_url(REDIS_URL, decode_responce=True)
+redis_client = aioredis.from_url(REDIS_URL, decode_responses=True)
 
 # Generator for using in routes across Dependency Injections
 async def get_redis_client():

@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from db.session import async_engine
 from core.redis import redis_client
+from core.logger import logger
 
 # importing ...
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,11 +12,39 @@ import uvicorn
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Logic during start (if it needed)
+    # Logic during application startup
+    logger.info("Launching a FastAPI application inside Docker")
+
+    try:
+        # Check Redis connection
+        await redis_client.ping()
+        logger.info("✅ Successfully connected to Redis.")
+    except Exception as e:
+        logger.error(f"❌ Error connecting to Redis: {str(e)}", exc_info=True)
+
+    try:
+        # Simple test of asynchronous database engine
+        async with async_engine.connect() as conn:
+            logger.info("✅ Successfully connected to PostgreSQL.")
+    except Exception as e:
+        logger.error(f"❌ Error connecting to PostgreSQL: {str(e)}", exc_info=True)
+
     yield
-    # Logic during stoping application - cleanly close all connections
-    await redis_client.aclose()
-    await async_engine.dispose()
+
+    # Logic during app shut down - simply close all connections
+    logger.info("Stopping FastAPI application. Closing all connections ...")
+    try:
+        await redis_client.aclose()
+        logger.info("Connection to Redis successfully closed.")
+    except Exception as e:
+        logger.error(f"Error while closing Redis: {str(e)} ")
+
+    try:
+        await async_engine.dispose()
+        logger.info("The PostgreSQL connection pull has been successfully cleared ")
+    except Exception as e:
+        logger.error(f"Error while clearing up the PostgreSQL pool: {str(e)}")
+
 
 # Passing lifespan to app
 app = FastAPI(lifespan=lifespan)

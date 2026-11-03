@@ -7,14 +7,14 @@ services:
     container_name: fastapi_quiz_app
     # We mount the local 'app' folder into the container so the code changes on the host machine take effect immediatley ("hot" reloading)
     volumes:
-      - ./app:/code/app
+      - .:/code
     ports:
       - "8000:8000"
     environment:
       # PLEASE NOTE: instead of 'localhost' we use the docker compose service names as host!
       - DATABASE_URL=postgresql+asyncpg://my_user:my_password@postgres_db:5432/my_database
       - REDIS_URL=redis://redis_cache:6379/0
-      - PYTHONPATH=/code/app
+      - PYTHONPATH=/code:/code/app
     depends_on:
       postgres_db:
         condition: service_healthy # The application will wait until Postgres is fully up and ready to accept connections
@@ -27,18 +27,39 @@ services:
         - action: rebuild
           path: ./requirements.txt
 
-  # 2. POSTGRESQL service
+  # 2. A Separate service for running Alembic commands in the same environment
+  alembic:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: alembic_tools
+    entrypoint: alembic
+    environment:
+    # Right here: we pass the asyncpg asynchronous driver directly
+      - DATABASE_URL=postgresql+asyncpg://my_user:my_password@postgres_db:5432/my_database
+    # Pass PYTHONPATH so Alembic can see your ORM models for autogenerate
+      - PYTHONPATH=/code
+    volumes:
+      - .:/code # Paths must align with 'web_app' service so that migrations are persisted on the host
+    depends_on:
+      postgres_db:
+        condition: service_healthy # Alembic should also wait for a healthy DB
+    # This container does not start on its own when running 'docker compose up'
+    profiles:
+      - tools
+
+  # 3. POSTGRESQL service
   postgres_db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: local-postgres
     environment:
       POSTGRES_DB: my_database
       POSTGRES_USER: my_user
       POSTGRES_PASSWORD: my_password
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - pg_quiz_data:/var/lib/postgresql/data
+      - pg_quiz_data:/var/lib/postgresql
       # Health check - Docker Compose finds out when the database is truly ready
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U my_user -d my_database"]
@@ -46,7 +67,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # 3. REDIS service
+  # 4. REDIS service
   redis_cache:
     image: redis:7-alpine
     container_name: local_redis
@@ -64,6 +85,7 @@ volumes:
 networks:
   default:
     name: quiz_network
+
 
 
 
